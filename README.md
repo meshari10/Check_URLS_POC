@@ -11,6 +11,9 @@ This Python script checks the reachability of URLs from a file and captures a sc
 - Captures a screenshot of each reachable website's homepage.
 - Logs unreachable URLs for review.
 - Automatically manages ChromeDriver compatibility with the installed Chrome version.
+- Retry Logic: Automatically retries up to 3 times if a URL times out or encounters a network error.
+- Timeout Support: Set timeout for URL requests and page load to ensure the script does not hang indefinitely.
+
 
 ---
 
