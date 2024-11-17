@@ -24,5 +24,11 @@ This Python script checks the reachability of URLs from a file and captures a sc
      ```
 3. **Install Required Python Libraries**:
    Use `pip` to install dependencies:
-   ```bash
-   pip install selenium webdriver-manager requests
+     ```bash
+     pip install selenium webdriver-manager requests
+     ```
+
+## Usage
+     ```bash
+     python check_urls.py urls.txt --output website_screenshots
+     ``` 
