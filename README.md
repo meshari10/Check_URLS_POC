@@ -24,8 +24,14 @@ This Python script checks the reachability of URLs from a file and captures a sc
    ```bash
    google-chrome --version
    ```
-4. **Install Required Python Libraries**:
+3. **Install Required Python Libraries**:
    Use pip to install dependencies:
    ```bash
    pip install selenium webdriver-manager requests
+   ```
+4. **Install ChromeDriver**
+   ```bash
+   wget https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.69/linux64/chromedriver-linux64.zip
+   unzip chromedriver-linux64.zip
+   sudo mv chromedriver /usr/local/bin/chromedriver
    ```
