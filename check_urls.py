@@ -6,13 +6,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 import os
 import requests
 import argparse
+import time
 
 # ANSI escape codes for color
 GREEN = '\033[32m'
+BOLD_GREEN = '\033[1;32m'  # Bold Green for screenshot saved message
 RED = '\033[31m'
+YELLOW = '\033[33m'  # Yellow for retrying messages
 RESET = '\033[0m'
 
-def check_url_reachability_and_capture(file_path, output_dir="screenshots"):
+def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_retries=3):
     # Set up Selenium WebDriver with WebDriver Manager
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run browser in headless mode
@@ -43,36 +46,48 @@ def check_url_reachability_and_capture(file_path, output_dir="screenshots"):
         # Open the log file to write reachable URLs
         with open(log_file, 'w') as log:
             for url in urls:
-                try:
-                    print(f"Checking: {url}")
-                    # Allow redirects and set timeout for the HTTP request
-                    response = requests.get(url, timeout=10, allow_redirects=True)
+                retries = 0
+                while retries < max_retries:
+                    try:
+                        print(f"Checking: {url}")
+                        # Allow redirects and set timeout for the HTTP request
+                        response = requests.get(url, timeout=10, allow_redirects=True)
 
-                    if response.status_code == 200:
-                        print(f"{GREEN}Reachable: {url} (Final URL: {response.url}){RESET}")
-                        log.write(f"Reachable: {url} -> Final URL: {response.url}\n")
-                        
-                        try:
-                            # Load the final URL in Selenium and capture a screenshot
-                            driver.get(response.url)
-                            driver.set_page_load_timeout(10)  # Set page load timeout for Selenium
+                        if response.status_code == 200:
+                            print(f"{GREEN}Reachable: {url} (Final URL: {response.url}){RESET}")
+                            log.write(f"Reachable: {url} -> Final URL: {response.url}\n")
                             
-                            # Capture screenshot after the page is loaded
-                            sanitized_url = response.url.replace('https://', '').replace('http://', '').replace('/', '_')
-                            screenshot_path = os.path.join(output_dir, f"{sanitized_url}.png")
-                            driver.save_screenshot(screenshot_path)
-                            print(f"Screenshot saved: {screenshot_path}")
-                        except TimeoutException:
-                            print(f"{RED}Timeout while loading page for {url}{RESET}")
+                            try:
+                                # Load the final URL in Selenium and capture a screenshot
+                                driver.get(response.url)
+                                driver.set_page_load_timeout(10)  # Set page load timeout for Selenium
+                                
+                                # Capture screenshot after the page is loaded
+                                sanitized_url = response.url.replace('https://', '').replace('http://', '').replace('/', '_')
+                                screenshot_path = os.path.join(output_dir, f"{sanitized_url}.png")
+                                driver.save_screenshot(screenshot_path)
+                                print(f"{BOLD_GREEN}Screenshot saved: {screenshot_path}{RESET}")
+                                break  # Successfully handled the URL, exit retry loop
+                            except TimeoutException:
+                                print(f"{RED}Timeout while loading page for {url}{RESET}")
+                                unreachable_urls.append(url)
+                                break  # Exit retry loop after timeout
+                            except WebDriverException as e:
+                                print(f"Error capturing screenshot for {url}: {e}")
+                                break  # Exit retry loop after error
+                        else:
+                            print(f"{RED}Unreachable (Status Code: {response.status_code}): {url}{RESET}")
                             unreachable_urls.append(url)
-                        except WebDriverException as e:
-                            print(f"Error capturing screenshot for {url}: {e}")
-                    else:
-                        print(f"{RED}Unreachable (Status Code: {response.status_code}): {url}{RESET}")
-                        unreachable_urls.append(url)
-                except requests.exceptions.RequestException as e:
-                    print(f"{RED}Unreachable (Error: {e}): {url}{RESET}")
-                    unreachable_urls.append(url)
+                            break  # Exit retry loop after an unreachable status code
+                    except requests.exceptions.RequestException as e:
+                        print(f"{RED}Unreachable (Error: {e}): {url}{RESET}")
+                        if retries < max_retries - 1:
+                            retries += 1
+                            print(f"{YELLOW}Retrying {url}... ({retries + 1}/{max_retries}){RESET}")
+                            time.sleep(5)  # Wait before retrying
+                        else:
+                            unreachable_urls.append(url)
+                            break  # Exit retry loop after max retries reached
 
         # Print summary
         if unreachable_urls:
