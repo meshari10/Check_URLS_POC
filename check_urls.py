@@ -16,7 +16,7 @@ RED = '\033[31m'
 YELLOW = '\033[33m'  # Yellow for retrying messages
 RESET = '\033[0m'
 
-def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_retries=3):
+def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_retries=3, timeout=10):
     # Set up Selenium WebDriver with WebDriver Manager
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run browser in headless mode
@@ -31,7 +31,7 @@ def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_
     driver.set_window_size(1920, 1080)  # You can adjust this as needed
 
     try:
-        # Create output directory for screenshots
+        # Create output directory for screenshots if it doesn't exist
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -46,23 +46,28 @@ def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_
 
         # Open the log file to write reachable URLs
         with open(log_file, 'w') as log:
-            for url in urls:
+            total_urls = len(urls)
+
+            for index, url in enumerate(urls, start=1):  # Start numbering URLs from 1
                 retries = 0
+                # Calculate progress percentage
+                progress_percentage = (index / total_urls) * 100
+                print(f"Checking URL #{index} of {total_urls} ({progress_percentage:.2f}%) : {url}")
+
                 while retries < max_retries:
                     try:
-                        print(f"Checking: {url}")
                         # Allow redirects and set timeout for the HTTP request
-                        response = requests.get(url, timeout=10, allow_redirects=True)
+                        response = requests.get(url, timeout=timeout, allow_redirects=True)
 
                         if response.status_code == 200:
-                            print(f"{GREEN}Reachable: {url} (Final URL: {response.url}){RESET}")
-                            log.write(f"Reachable: {url} -> Final URL: {response.url}\n")
+                            print(f"{GREEN}Reachable: #{index} {url} (Final URL: {response.url}){RESET}")
+                            log.write(f"#{index} Reachable: {url} -> Final URL: {response.url}\n")
                             
                             try:
                                 # Load the final URL in Selenium and capture a screenshot
                                 driver.get(response.url)
-                                driver.set_page_load_timeout(10)  # Set page load timeout for Selenium
-                                
+                                driver.set_page_load_timeout(timeout)  # Set page load timeout for Selenium
+                                 
                                 # Capture screenshot after the page is loaded
                                 sanitized_url = response.url.replace('https://', '').replace('http://', '').replace('/', '_')
                                 screenshot_path = os.path.join(output_dir, f"{sanitized_url}.png")
@@ -77,20 +82,20 @@ def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_
                                 print(f"Error capturing screenshot for {url}: {e}")
                                 break  # Exit retry loop after error
                         else:
-                            print(f"{RED}Unreachable (Status Code: {response.status_code}): {url}{RESET}")
+                            print(f"{RED}Unreachable (Status Code: {response.status_code}): #{index} {url}{RESET}")
                             unreachable_urls.append(url)
                             break  # Exit retry loop after an unreachable status code
                     except requests.exceptions.RequestException as e:
-                        print(f"{RED}Unreachable (Error: {e}): {url}{RESET}")
+                        print(f"{RED}Unreachable (Error: {e}): #{index} {url}{RESET}")
                         if retries < max_retries - 1:
                             retries += 1
-                            print(f"{YELLOW}Retrying {url}... ({retries + 1}/{max_retries}){RESET}")
+                            print(f"{YELLOW}Retrying URL #{index}: {url}... ({retries + 1}/{max_retries}){RESET}")
                             time.sleep(5)  # Wait before retrying
                         else:
                             unreachable_urls.append(url)
                             break  # Exit retry loop after max retries reached
 
-        # Print summary
+        # Print summary of unreachable URLs
         if unreachable_urls:
             print("\nThe following URLs are not reachable, try manually:")
             for url in unreachable_urls:
