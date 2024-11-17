@@ -91,7 +91,7 @@ def check_url_reachability_and_capture(file_path, output_dir="screenshots", max_
 
         # Print summary
         if unreachable_urls:
-            print("\nThe following URLs are not reachable:")
+            print("\nThe following URLs are not reachable, try manually:")
             for url in unreachable_urls:
                 print(f"{RED}{url}{RESET}")
         else:
