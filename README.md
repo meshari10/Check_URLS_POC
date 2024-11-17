@@ -18,17 +18,11 @@ This Python script checks the reachability of URLs from a file and captures a sc
 
 1. **Python 3.7 or later** installed on your system.
 2. **Google Chrome** installed.
-   - Verify installation:
-     ```bash
-     google-chrome --version
-     ```
-3. **Install Required Python Libraries**:
-   Use `pip` to install dependencies:
-     ```bash
-     pip install selenium webdriver-manager requests
-     ```
-
-## Usage
-     ```bash
-     python check_urls.py urls.txt --output website_screenshots
-     ``` 
+   ```bash
+   google-chrome --version
+   ```
+4. **Install Required Python Libraries**:
+   Use pip to install dependencies:
+   ```bash
+   pip install selenium webdriver-manager requests
+   ```
